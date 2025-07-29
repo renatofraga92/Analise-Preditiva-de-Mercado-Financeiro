@@ -1,0 +1,194 @@
+import yfinance as yf
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from statsmodels.tsa.stattools import adfuller
+
+# --- 0. Configurações Globais do Projeto ---
+# Defina o ticker da ação, o período e o intervalo dos dados.
+# Exemplos de tickers: "AAPL" (Apple), "MSFT" (Microsoft), "GOOGL" (Alphabet A),
+# "PETR4.SA" (Petrobras na B3), "BTC-USD" (Bitcoin)
+TICKER_SYMBOL = "GOOGL"
+PERIOD_DATA = "5y"      # Período para download dos dados (ex: "5y" para 5 anos, "10y" para 10 anos)
+INTERVAL_DATA = "1d"    # Intervalo dos dados (ex: "1d" para diário)
+TEST_SIZE_RATIO = 0.2   # Proporção do conjunto de teste (20% dos dados mais recentes)
+
+print(f"--- Iniciando Projeto: Análise Preditiva de Mercado Financeiro para {TICKER_SYMBOL} ---")
+print(f"Configurações: Período={PERIOD_DATA}, Intervalo={INTERVAL_DATA}, Teste={TEST_SIZE_RATIO*100}% dos dados.\n")
+
+# --- 1. Coleta de Dados Históricos ---
+print("1. Coletando dados históricos...")
+try:
+    # Baixar dados históricos de preço de fechamento ajustado (preferível para análise de retornos)
+    # ou 'Close' se 'Adj Close' não for suficiente.
+    data = yf.download(TICKER_SYMBOL, period=PERIOD_DATA, interval=INTERVAL_DATA)
+
+    if data.empty:
+        raise ValueError(f"Não foi possível baixar dados para {TICKER_SYMBOL}. "
+                         f"Verifique o ticker, o período e o intervalo. "
+                         f"Pode ser um ativo sem histórico ou ticker incorreto.")
+    # Garantir que o índice seja do tipo DateTimeIndex para manipulações de data
+    data.index = pd.to_datetime(data.index)
+    print("Dados brutos (cabeçalho):\n", data.head())
+    print("\nDados brutos (final):\n", data.tail())
+    print(f"\nDados coletados com sucesso. Total de {len(data)} registros.")
+
+except Exception as e:
+    print(f"ERRO ao baixar dados para {TICKER_SYMBOL}: {e}")
+    print("Por favor, verifique o símbolo do ticker e sua conexão com a internet.")
+    exit() # Encerrar o script em caso de falha na coleta de dados
+
+# --- 2. Análise Exploratória de Dados (EDA) ---
+print("\n2. Realizando Análise Exploratória de Dados (EDA)...")
+
+# 2.1. Visualização do Preço de Fechamento Ajustado
+plt.figure(figsize=(14, 7))
+plt.plot(data['Adj Close'], color='skyblue', linewidth=1.5)
+plt.title(f'Preço de Fechamento Ajustado de {TICKER_SYMBOL} (Últimos {PERIOD_DATA})', fontsize=16)
+plt.xlabel('Data', fontsize=12)
+plt.ylabel('Preço de Fechamento Ajustado (USD)', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+print(f"Observação: O gráfico de preços de {TICKER_SYMBOL} exibe a tendência de longo prazo do ativo.")
+print("É comum observar uma não-estacionaridade aqui (tendência de alta ou baixa clara).\n")
+
+# 2.2. Cálculo e Visualização dos Retornos Logarítmicos Diários
+# Usamos 'Adj Close' para calcular retornos, pois considera splits e dividendos.
+data['Log_Returns'] = np.log(data['Adj Close'] / data['Adj Close'].shift(1))
+# Remover a primeira linha que terá NaN devido ao shift(1)
+data.dropna(subset=['Log_Returns'], inplace=True)
+
+plt.figure(figsize=(14, 7))
+plt.plot(data['Log_Returns'], color='lightcoral', linewidth=1)
+plt.title(f'Retornos Logarítmicos Diários de {TICKER_SYMBOL} (Últimos {PERIOD_DATA})', fontsize=16)
+plt.xlabel('Data', fontsize=12)
+plt.ylabel('Retorno Logarítmico', fontsize=12)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+print(f"Observação: Os retornos logarítmicos de {TICKER_SYMBOL} flutuam em torno de zero, ")
+print("visualmente parecendo mais estacionários que os preços brutos. Picos indicam volatilidade.\n")
+
+# 2.3. Análise de Sazonalidade (Mês e Dia da Semana)
+# Criar colunas para mês e dia da semana a partir do índice de data
+data['Month'] = data.index.month
+data['DayOfWeek'] = data.index.dayofweek # Segunda = 0, Domingo = 6
+
+# Calcular o retorno médio por mês
+monthly_avg_returns = data.groupby('Month')['Log_Returns'].mean()
+
+# Calcular o retorno médio por dia da semana
+day_names = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+daily_avg_returns = data.groupby('DayOfWeek')['Log_Returns'].mean()
+daily_avg_returns.index = daily_avg_returns.index.map(lambda x: day_names[x])
+
+# Plotar retornos médios por mês
+plt.figure(figsize=(10, 6))
+monthly_avg_returns.plot(kind='bar', color='darkseagreen')
+plt.title(f'Retorno Logarítmico Médio por Mês para {TICKER_SYMBOL}', fontsize=16)
+plt.xlabel('Mês', fontsize=12)
+plt.ylabel('Retorno Médio', fontsize=12)
+plt.xticks(rotation=0)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+
+# Plotar retornos médios por dia da semana
+plt.figure(figsize=(10, 6))
+daily_avg_returns.plot(kind='bar', color='cornflowerblue')
+plt.title(f'Retorno Logarítmico Médio por Dia da Semana para {TICKER_SYMBOL}', fontsize=16)
+plt.xlabel('Dia da Semana', fontsize=12)
+plt.ylabel('Retorno Médio', fontsize=12)
+plt.xticks(rotation=45)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
+print("Observação: A análise de sazonalidade ajuda a identificar padrões médios de retorno por período.")
+print("Pode não haver uma sazonalidade forte para todos os ativos, mas anomalias podem ser notadas.\n")
+
+# --- 3. Pré-processamento de Dados e Teste de Estacionaridade ---
+print("3. Pré-processamento de Dados e Teste de Estacionaridade...")
+
+# 3.1. Teste de Dickey-Fuller Aumentado (ADF Test) para Estacionaridade
+print(f"Realizando Teste de Dickey-Fuller Aumentado (ADF) nos retornos logarítmicos de {TICKER_SYMBOL}...")
+adf_test_result = adfuller(data['Log_Returns'])
+
+print(f"Estatística ADF: {adf_test_result[0]:.4f}")
+print(f"P-valor: {adf_test_result[1]:.4f}")
+print("Valores Críticos (Nível de Significância):")
+for key, value in adf_test_result[4].items():
+    print(f"\t{key}: {value:.4f}")
+
+# Interpretação do p-valor
+if adf_test_result[1] <= 0.05:
+    print(f"\nInterpretação: O p-valor ({adf_test_result[1]:.4f}) é menor ou igual a 0.05.")
+    print("Rejeitamos a hipótese nula. A série de retornos logarítmicos É ESTACIONÁRIA.")
+    print("Isso é crucial para a aplicação de muitos modelos de séries temporais como ARIMA.")
+else:
+    print(f"\nInterpretação: O p-valor ({adf_test_result[1]:.4f}) é maior que 0.05.")
+    print("Não rejeitamos a hipótese nula. A série de retornos logarítmicos NÃO É ESTACIONÁRIA.")
+    print("Transformações adicionais podem ser necessárias antes da modelagem ARIMA (ex: diferenciação).")
+
+# 3.2. Divisão Cronológica em Conjuntos de Treino e Teste
+print("\nDividindo dados em conjuntos de treino e teste (cronologicamente)...")
+train_size = int(len(data['Log_Returns']) * (1 - TEST_SIZE_RATIO))
+train_data = data['Log_Returns'].iloc[:train_size]
+test_data = data['Log_Returns'].iloc[train_size:]
+
+print(f"Tamanho do Conjunto de Treino: {len(train_data)} registros ({train_data.index.min().strftime('%Y-%m-%d')} a {train_data.index.max().strftime('%Y-%m-%d')})")
+print(f"Tamanho do Conjunto de Teste: {len(test_data)} registros ({test_data.index.min().strftime('%Y-%m-%d')} a {test_data.index.max().strftime('%Y-%m-%d')})")
+
+# Visualizar a divisão
+plt.figure(figsize=(14, 7))
+plt.plot(train_data.index, train_data, label='Treino', color='blue', linewidth=1)
+plt.plot(test_data.index, test_data, label='Teste', color='red', linewidth=1)
+plt.title(f'Divisão Cronológica dos Retornos Logarítmicos de {TICKER_SYMBOL}', fontsize=16)
+plt.xlabel('Data', fontsize=12)
+plt.ylabel('Retorno Logarítmico', fontsize=12)
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+print("A divisão cronológica garante que o modelo seja treinado apenas com dados passados.\n")
+
+# --- 4. Próximos Passos: Modelagem Preditiva (Comentado) ---
+print("4. Próximos Passos: Modelagem Preditiva (Exemplo Comentado)")
+print("Nesta fase, você construiria e avaliaria um modelo preditivo para os retornos logarítmicos.")
+print("Exemplos de modelos: ARIMA, SARIMA, Prophet, ou modelos de Machine Learning/Deep Learning com séries temporais.")
+
+# Exemplo de como uma etapa de modelagem começaria:
+"""
+# from statsmodels.tsa.arima.model import ARIMA
+# model = ARIMA(train_data, order=(p, d, q)) # p, d, q são os parâmetros do modelo ARIMA
+# model_fit = model.fit()
+# print(model_fit.summary())
+
+# # Previsões
+# predictions = model_fit.predict(start=len(train_data), end=len(data)-1, typ='levels')
+# predictions.index = test_data.index # Alinhar o índice das previsões com o teste
+
+# # Avaliação (exemplo)
+# from sklearn.metrics import mean_absolute_error
+# mae = mean_absolute_error(test_data, predictions)
+# print(f"MAE nas previsões: {mae:.4f}")
+
+# # Visualização das Previsões vs. Real
+# plt.figure(figsize=(14, 7))
+# plt.plot(test_data.index, test_data, label='Valores Reais (Teste)', color='green')
+# plt.plot(predictions.index, predictions, label='Previsões', color='purple', linestyle='--')
+# plt.title(f'Previsões vs. Valores Reais para {TICKER_SYMBOL}', fontsize=16)
+# plt.xlabel('Data', fontsize=12)
+# plt.ylabel('Retorno Logarítmico', fontsize=12)
+# plt.legend()
+# plt.grid(True, linestyle='--', alpha=0.7)
+# plt.xticks(rotation=45)
+# plt.tight_layout()
+# plt.show()
+"""
+print("\n--- Projeto 'Análise Preditiva de Mercado Financeiro' Concluído (Fase de Preparação) ---")
+print("Este código está pronto para ser adicionado ao seu portfólio no GitHub.")
+print("O próximo passo natural seria a implementação de um modelo preditivo.")

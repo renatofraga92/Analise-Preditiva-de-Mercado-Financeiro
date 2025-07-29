@@ -1,0 +1,44 @@
+Para prever o comportamento de ativos financeiros, precisamos entender os fundamentos das séries temporais. Diferentemente de dados "normais", os dados de séries temporais possuem uma dependência temporal intrínseca – o valor atual é influenciado pelos valores passados.
+
+O que é uma Série Temporal?
+Uma série temporal é uma sequência de pontos de dados indexados (ou listados) em ordem cronológica. Em finanças, isso geralmente significa preços de ações, volumes de negociação, taxas de câmbio, etc., coletados em intervalos regulares (diário, horário, minuto a minuto).
+
+Componentes de uma Série Temporal
+Ao analisar dados financeiros como séries temporais, podemos identificar alguns componentes principais:
+
+Tendência (Trend): É o movimento de longo prazo da série, mostrando se os valores estão geralmente aumentando, diminuindo ou permanecendo estáveis ao longo do tempo. Em ações, uma tendência de alta indica um mercado otimista, enquanto uma de baixa indica pessimismo.
+
+Sazonalidade (Seasonality): Padrões que se repetem em intervalos fixos e previsíveis. Por exemplo, algumas ações podem ter um desempenho melhor em certos meses do ano ou dias da semana devido a fatores específicos do setor ou do mercado.
+
+Ciclo (Cycle): Flutuações de longo prazo que não são sazonais e geralmente não têm um período fixo. Podem estar relacionadas a ciclos econômicos (expansão, recessão) que afetam o mercado como um todo.
+
+Ruído/Resíduo (Noise/Residual): O componente aleatório da série, que não pode ser explicado pela tendência, sazonalidade ou ciclo. Representa a parte imprevisível da série.
+
+Por que É Diferente Prever Séries Temporais?
+Dependência Temporal: O valor de hoje depende do valor de ontem. Isso viola a suposição de independência de observações, comum em muitos modelos de machine learning tradicionais.
+
+Estacionaridade: Muitos modelos de séries temporais funcionam melhor com séries estacionárias, ou seja, aquelas cujas propriedades estatísticas (média, variância) não mudam ao longo do tempo e a covariância entre dois períodos depende apenas da distância entre eles, não da localização. Dados financeiros raramente são estacionários "como estão".
+
+Variabilidade: Mercados financeiros são voláteis e imprevisíveis em sua natureza. Pequenas notícias ou eventos podem causar grandes flutuações.
+
+Desafios na Previsão de Dados Financeiros
+Não Estacionaridade: Preços de ações e volumes geralmente não são estacionários, o que exige transformações (como diferenciação) antes da modelagem.
+
+Ruído Elevado: O mercado é muito influenciado por eventos imprevisíveis, tornando o "ruído" uma parte significativa dos dados.
+
+Eficiência do Mercado: A hipótese do mercado eficiente (EMH) sugere que os preços dos ativos já refletem todas as informações disponíveis, tornando a superação consistente do mercado extremamente difícil. Embora não seja o objetivo aqui "superar o mercado", é importante ter essa consciência ao tentar prever.
+
+Assimetria de Informação: Nem todos têm acesso às mesmas informações ao mesmo tempo, o que pode influenciar o comportamento dos preços.
+
+Métricas Comuns em Análise Financeira
+Ao trabalhar com dados financeiros, é comum calcular e analisar:
+
+Retornos (Returns): Em vez de prever o preço absoluto, muitas vezes é mais útil prever os retornos diários (porcentagem de mudança no preço). Retornos tendem a ser mais estacionários que os preços.
+
+Retorno Simples: (P_t−P_t−1)/P_t−1
+
+Retorno Logarítmico: ln(P_t/P_t−1) (mais comum em modelagem por suas propriedades matemáticas)
+
+Volatilidade: Mede a dispersão dos retornos, indicando o grau de risco de um ativo. Geralmente calculada como o desvio padrão dos retornos.
+
+
