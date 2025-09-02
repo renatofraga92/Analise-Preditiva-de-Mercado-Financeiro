@@ -189,6 +189,3 @@ print("Exemplos de modelos: ARIMA, SARIMA, Prophet, ou modelos de Machine Learni
 # plt.tight_layout()
 # plt.show()
 """
-print("\n--- Projeto 'Análise Preditiva de Mercado Financeiro' Concluído (Fase de Preparação) ---")
-print("Este código está pronto para ser adicionado ao seu portfólio no GitHub.")
-print("O próximo passo natural seria a implementação de um modelo preditivo.")
